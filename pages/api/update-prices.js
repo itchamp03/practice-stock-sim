@@ -1,40 +1,47 @@
-// pages/api/update-prices.js
+// File: /api/update-stocks.js
+
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export default async function handler(req, res) {
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc');
-    const data = await response.json();
+    // Fetch all stocks
+    const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*');
+    if (fetchError) throw fetchError;
 
-    const updates = data.map((coin) => ({
-      id: coin.id,
-      symbol: coin.symbol.toUpperCase(),
-      name: coin.name,
-      image: coin.image,
-      current_price: coin.current_price,
-      market_cap: coin.market_cap,
-      price_change_percentage_24h: coin.price_change_percentage_24h,
-      last_updated: coin.last_updated,
-    }));
+    const now = new Date().toISOString();
 
-    // Clear old data (optional if you're overwriting)
-    await supabase.from('coins').delete().neq('id', '');
+    // Update each stock's price and log history
+    for (const stock of stocks) {
+      // Calculate new price with random volatility change
+      const change = (Math.random() * 2 - 1) * stock.volatility;
+      const newPrice = Math.max(0.1, stock.price * (1 + change));
 
-    const { error } = await supabase.from('coins').insert(updates);
+      // Update stock price and last_updated timestamp
+      const { error: updateError } = await supabase
+        .from('stocks')
+        .update({ price: newPrice, last_updated: now })
+        .eq('id', stock.id);
+      if (updateError) throw updateError;
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({ error: 'Failed to insert data to Supabase' });
+      // Insert price change into stock_history
+      const { error: insertError } = await supabase
+        .from('stock_history')
+        .insert([{ stock_id: stock.id, price: newPrice, timestamp: now }]);
+      if (insertError) throw insertError;
     }
 
-    return res.status(200).json({ message: 'Prices updated successfully' });
-  } catch (err) {
-    console.error('Fetch or server error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.status(200).json({ message: 'Stock prices updated successfully' });
+  } catch (error) {
+    console.error('Error updating stock prices:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
