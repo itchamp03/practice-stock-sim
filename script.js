@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://dsmcscvdzytcswsitzbj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // truncated for clarity
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzbWNzY3Zkenl0Y3N3c2l0emJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzkzODksImV4cCI6MjA2NDk1NTM4OX0.GaXM7bOg_DBCT-KJljPVIuvD6NhkBzkjMSpPQNlHvIM'; // truncated for clarity
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const tbody = document.getElementById("stocks-tbody");
