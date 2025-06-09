@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sprout Investing - Live Market</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    table {
+      width: 80%;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: center;
+      cursor: pointer;
+    }
+    th:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sprout Investing - Live Market</h1>
+  <div id="stocks-container">
+    <table id="stocks-table" border="1" cellspacing="0" cellpadding="5">
+      <thead>
+        <tr>
+          <th data-sort="name" style="cursor:pointer">Name ▲▼</th>
+          <th data-sort="ticker" style="cursor:pointer">Ticker ▲▼</th>
+          <th data-sort="price" style="cursor:pointer">Price ▲▼</th>
+          <th data-sort="last_updated" style="cursor:pointer">Last Updated ▲▼</th>
+          <th data-sort="percent_change" style="cursor:pointer">% Change (1h) ▲▼</th>
+        </tr>
+      </thead>
+      <tbody id="stocks-tbody">
+        <!-- Rows go here -->
+      </tbody>
+    </table>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

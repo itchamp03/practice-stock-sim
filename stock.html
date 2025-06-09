@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stock Detail</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1 id="stock-name">Loading...</h1>
+
+  <label for="time-range">Select Time Range:</label>
+  <select id="time-range">
+    <option value="10m">10 Minutes</option>
+    <option value="30m">30 Minutes</option>
+    <option value="1h">1 Hour</option>
+    <option value="1d">1 Day</option>
+    <option value="7d">7 Days</option>
+    <option value="14d">14 Days</option>
+    <option value="1m">1 Month</option>
+    <option value="3m">3 Months</option>
+    <option value="6m">6 Months</option>
+    <option value="1y">1 Year</option>
+  </select>
+
+  <canvas id="price-chart" width="800" height="400"></canvas>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const SUPABASE_URL = 'https://dsmcscvdzytcswsitzbj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzbWNzY3Zkenl0Y3N3c2l0emJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzkzODksImV4cCI6MjA2NDk1NTM4OX0.GaXM7bOg_DBCT-KJljPVIuvD6NhkBzkjMSpPQNlHvIM';
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const params = new URLSearchParams(window.location.search);
+    const stockId = params.get('id');
+    const ticker = params.get('ticker');
+
+    const stockNameEl = document.getElementById('stock-name');
+    const timeRangeSelect = document.getElementById('time-range');
+    const ctx = document.getElementById('price-chart').getContext('2d');
+
+    let chart;
+
+    async function fetchStockName() {
+      const { data, error } = await supabaseClient
+        .from('stocks')
+        .select('name')
+        .eq('id', stockId)
+        .single();
+
+      if (error) {
+        stockNameEl.textContent = 'Error loading stock';
+        return;
+      }
+      stockNameEl.textContent = data.name + ` (${ticker})`;
+    }
+
+    function getStartDateForRange(range) {
+      const now = new Date();
+      switch(range) {
+        case '10m': return new Date(now.getTime() - 10 * 60 * 1000);
+        case '30m': return new Date(now.getTime() - 30 * 60 * 1000);
+        case '1h': return new Date(now.getTime() - 60 * 60 * 1000);
+        case '1d': return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case '14d': return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        case '1m': return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        case '3m': return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+        case '6m': return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+        case '1y': return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        default: return new Date(now.getTime() - 60 * 60 * 1000);
+      }
+    }
+
+    async function fetchPriceHistory(range) {
+      const startDate = getStartDateForRange(range).toISOString();
+
+      const { data, error } = await supabaseClient
+        .from('stock_history')
+        .select('price, timestamp')
+        .eq('stock_id', stockId)
+        .gte('timestamp', startDate)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching history:', error);
+        return [];
+      }
+      return data;
+    }
+
+    function renderChart(data) {
+      const labels = data.map(entry => new Date(entry.timestamp).toLocaleString());
+      const prices = data.map(entry => entry.price);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Price ($)',
+            data: prices,
+            borderColor: 'blue',
+            backgroundColor: 'rgba(0,0,255,0.1)',
+            fill: true,
+            tension: 0.2,
+          }]
+        },
+        options: {
+          scales: {
+            x: {
+              display: true,
+              title: { display: true, text: 'Time' }
+            },
+            y: {
+              display: true,
+              title: { display: true, text: 'Price ($)' }
+            }
+          }
+        }
+      });
+    }
+
+    async function updateChart() {
+      const range = timeRangeSelect.value;
+      const historyData = await fetchPriceHistory(range);
+      renderChart(historyData);
+    }
+
+    timeRangeSelect.addEventListener('change', updateChart);
+
+    // Initialize
+    fetchStockName();
+    updateChart();
+
+  </script>
+</body>
+</html>
